@@ -2,11 +2,14 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileJson } from "lucide-react";
+import { FileJson, Download } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import { Student } from "@/models/types";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 const JsonViewer = () => {
+  const { toast } = useToast();
   const [students, setStudents] = useState<Student[]>([]);
   
   // Load students from localStorage
@@ -27,15 +30,40 @@ const JsonViewer = () => {
   };
   
   const jsonString = JSON.stringify(jsonData, null, 2);
+
+  const downloadJsonFile = () => {
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "students_data.json";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "JSON Downloaded",
+      description: "The students data has been downloaded as a JSON file."
+    });
+  };
   
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center mb-6">
-          <FileJson className="h-6 w-6 text-usha-blue mr-2" />
-          <h1 className="text-2xl font-bold text-usha-blue">JSON Student Data</h1>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center">
+            <FileJson className="h-6 w-6 text-usha-blue mr-2" />
+            <h1 className="text-2xl font-bold text-usha-blue">JSON Student Data</h1>
+          </div>
+          
+          {students.length > 0 && (
+            <Button onClick={downloadJsonFile} className="bg-usha-blue hover:bg-usha-lightblue">
+              <Download className="mr-2 h-4 w-4" />
+              Download JSON
+            </Button>
+          )}
         </div>
         
         {students.length > 0 ? (

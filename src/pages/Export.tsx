@@ -1,14 +1,26 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { FileDown, FileJson, Download, FileText } from "lucide-react";
+import { FileDown, FileJson, Download, FileText, Search } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import { Exam, Student, ExamWithStudents } from "@/models/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+const searchFormSchema = z.object({
+  studentName: z.string().min(2, "Name must be at least 2 characters"),
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
+});
 
 const Export = () => {
   const { toast } = useToast();
@@ -18,6 +30,17 @@ const Export = () => {
   const [selectedExamId, setSelectedExamId] = useState<string>("");
   const [selectedStudentId, setSelectedStudentId] = useState<string>("");
   const [showHallTicket, setShowHallTicket] = useState(false);
+  const [showHallTicketSearch, setShowHallTicketSearch] = useState(false);
+  const [foundStudent, setFoundStudent] = useState<Student | null>(null);
+  const [foundExam, setFoundExam] = useState<Exam | null>(null);
+  
+  const searchForm = useForm<z.infer<typeof searchFormSchema>>({
+    resolver: zodResolver(searchFormSchema),
+    defaultValues: {
+      studentName: "",
+      dateOfBirth: "",
+    },
+  });
   
   // Load exams and students from localStorage
   useEffect(() => {
@@ -107,14 +130,51 @@ const Export = () => {
     setShowHallTicket(true);
   };
   
-  const HallTicketModal = () => {
-    const selectedExam = exams.find(exam => exam.id === selectedExamId);
-    const selectedStudent = students.find(student => student.id === selectedStudentId);
+  const searchStudentHallTicket = (data: z.infer<typeof searchFormSchema>) => {
+    const student = students.find(
+      s => s.studentName.toLowerCase() === data.studentName.toLowerCase() && 
+           s.dateOfBirth === data.dateOfBirth
+    );
+    
+    if (!student) {
+      toast({
+        title: "Student Not Found",
+        description: "No student matches the provided name and date of birth.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Find an exam that includes this student
+    const exam = exams.find(e => e.studentIds.includes(student.id));
+    if (!exam) {
+      toast({
+        title: "No Exam Assigned",
+        description: "This student has not been assigned to any exam yet.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setFoundStudent(student);
+    setFoundExam(exam);
+    setShowHallTicketSearch(true);
+  };
+  
+  const HallTicketModal = ({ student = null, exam = null }: { student?: Student | null, exam?: Exam | null }) => {
+    const selectedExam = exam || exams.find(e => e.id === selectedExamId);
+    const selectedStudent = student || students.find(s => s.id === selectedStudentId);
     
     if (!selectedExam || !selectedStudent) return null;
     
     return (
-      <Dialog open={showHallTicket} onOpenChange={setShowHallTicket}>
+      <Dialog open={showHallTicket || showHallTicketSearch} 
+              onOpenChange={(open) => {
+                if (!open) {
+                  setShowHallTicket(false);
+                  setShowHallTicketSearch(false);
+                }
+              }}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Hall Ticket</DialogTitle>
@@ -124,9 +184,12 @@ const Export = () => {
             <div className="flex justify-between items-center mb-6 border-b pb-4">
               <div className="flex items-center gap-3">
                 <img 
-                  src="https://i.ibb.co/PskvV2/Untitled-design.png" 
+                  src="https://exam.ushainstitute.com/wp-content/uploads/2025/03/cropped-Usha-Institute-removebg-preview.png" 
                   alt="Usha Institute Logo" 
                   className="h-16 w-auto" 
+                  onError={(e) => {
+                    e.currentTarget.src = "https://i.ibb.co/PskvV2V/Untitled-design.png";
+                  }}
                 />
                 <div>
                   <h1 className="text-xl font-bold text-usha-blue">Usha Institute</h1>
@@ -250,6 +313,58 @@ const Export = () => {
     );
   };
   
+  const StudentSearchForm = () => {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Search className="mr-2 h-5 w-5 text-usha-blue" />
+            Find Your Hall Ticket
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form {...searchForm}>
+            <form onSubmit={searchForm.handleSubmit(searchStudentHallTicket)} className="space-y-4">
+              <FormField
+                control={searchForm.control}
+                name="studentName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Student Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter your full name" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={searchForm.control}
+                name="dateOfBirth"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Date of Birth</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              
+              <Button 
+                type="submit" 
+                className="w-full bg-usha-blue hover:bg-usha-lightblue"
+              >
+                <Search className="mr-2 h-4 w-4" />
+                Search Hall Ticket
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    );
+  };
+  
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -257,159 +372,174 @@ const Export = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-2xl font-bold text-usha-blue mb-6">Data Export</h1>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <FileDown className="mr-2 h-5 w-5 text-usha-blue" />
-                Export Student Data (CSV)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="examSelect">Select Exam</Label>
-                  <Select value={selectedExamId} onValueChange={setSelectedExamId}>
-                    <SelectTrigger id="examSelect">
-                      <SelectValue placeholder="Choose an exam" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {exams.length > 0 ? (
-                        exams.map(exam => (
-                          <SelectItem key={exam.id} value={exam.id}>
-                            {exam.examCode} ({new Date(exam.examDate).toLocaleDateString()})
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="none" disabled>No exams available</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <Button 
-                  onClick={generateCSV} 
-                  className="w-full bg-usha-blue hover:bg-usha-lightblue"
-                  disabled={!selectedExamId || exams.length === 0}
-                >
-                  <FileDown className="mr-2 h-4 w-4" />
-                  Download CSV
-                </Button>
-                
-                {exams.length === 0 && (
-                  <p className="text-sm text-gray-500 mt-2">
-                    No exams available. Create an exam with assigned students first.
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+        <Tabs defaultValue="admin">
+          <TabsList className="mb-6">
+            <TabsTrigger value="admin">Administrator</TabsTrigger>
+            <TabsTrigger value="student">Student</TabsTrigger>
+          </TabsList>
           
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <FileJson className="mr-2 h-5 w-5 text-usha-blue" />
-                Student Data (JSON)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <p className="text-sm text-gray-600">
-                  View JSON data containing all registered students' information in a dedicated viewer page.
-                </p>
-                
-                <Button 
-                  onClick={viewJSONData} 
-                  className="w-full bg-usha-blue hover:bg-usha-lightblue"
-                  disabled={students.length === 0}
-                >
-                  <FileJson className="mr-2 h-4 w-4" />
-                  View JSON Data
-                </Button>
-                
-                {students.length === 0 && (
-                  <p className="text-sm text-gray-500 mt-2">
-                    No students available. Register students first.
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <FileText className="mr-2 h-5 w-5 text-usha-blue" />
-                Generate Hall Ticket
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="examSelectHall">Select Exam</Label>
-                    <Select value={selectedExamId} onValueChange={setSelectedExamId}>
-                      <SelectTrigger id="examSelectHall">
-                        <SelectValue placeholder="Choose an exam" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {exams.length > 0 ? (
-                          exams.map(exam => (
-                            <SelectItem key={exam.id} value={exam.id}>
-                              {exam.examCode} ({new Date(exam.examDate).toLocaleDateString()})
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="none" disabled>No exams available</SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="studentSelect">Select Student</Label>
-                    <Select 
-                      value={selectedStudentId} 
-                      onValueChange={setSelectedStudentId}
-                      disabled={!selectedExamId}
-                    >
-                      <SelectTrigger id="studentSelect">
-                        <SelectValue placeholder="Choose a student" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {selectedExamId && exams.find(e => e.id === selectedExamId)?.studentIds.length > 0 ? (
-                          students
-                            .filter(student => exams.find(e => e.id === selectedExamId)?.studentIds.includes(student.id))
-                            .map(student => (
-                              <SelectItem key={student.id} value={student.id}>
-                                {student.rollNumber} - {student.studentName}
+          <TabsContent value="admin">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <FileDown className="mr-2 h-5 w-5 text-usha-blue" />
+                    Export Student Data (CSV)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="examSelect">Select Exam</Label>
+                      <Select value={selectedExamId} onValueChange={setSelectedExamId}>
+                        <SelectTrigger id="examSelect">
+                          <SelectValue placeholder="Choose an exam" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {exams.length > 0 ? (
+                            exams.map(exam => (
+                              <SelectItem key={exam.id} value={exam.id}>
+                                {exam.examCode} ({new Date(exam.examDate).toLocaleDateString()})
                               </SelectItem>
                             ))
-                        ) : (
-                          <SelectItem value="none" disabled>
-                            {!selectedExamId ? "Select an exam first" : "No students assigned to this exam"}
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
+                          ) : (
+                            <SelectItem value="none" disabled>No exams available</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <Button 
+                      onClick={generateCSV} 
+                      className="w-full bg-usha-blue hover:bg-usha-lightblue"
+                      disabled={!selectedExamId || exams.length === 0}
+                    >
+                      <FileDown className="mr-2 h-4 w-4" />
+                      Download CSV
+                    </Button>
+                    
+                    {exams.length === 0 && (
+                      <p className="text-sm text-gray-500 mt-2">
+                        No exams available. Create an exam with assigned students first.
+                      </p>
+                    )}
                   </div>
-                </div>
-                
-                <Button 
-                  onClick={generateHallTicket} 
-                  className="w-full bg-usha-blue hover:bg-usha-lightblue"
-                  disabled={!selectedExamId || !selectedStudentId}
-                >
-                  <FileText className="mr-2 h-4 w-4" />
-                  Generate Hall Ticket
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <FileJson className="mr-2 h-5 w-5 text-usha-blue" />
+                    Student Data (JSON)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-600">
+                      View JSON data containing all registered students' information in a dedicated viewer page.
+                    </p>
+                    
+                    <Button 
+                      onClick={viewJSONData} 
+                      className="w-full bg-usha-blue hover:bg-usha-lightblue"
+                      disabled={students.length === 0}
+                    >
+                      <FileJson className="mr-2 h-4 w-4" />
+                      View JSON Data
+                    </Button>
+                    
+                    {students.length === 0 && (
+                      <p className="text-sm text-gray-500 mt-2">
+                        No students available. Register students first.
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="md:col-span-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <FileText className="mr-2 h-5 w-5 text-usha-blue" />
+                    Generate Hall Ticket
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="examSelectHall">Select Exam</Label>
+                        <Select value={selectedExamId} onValueChange={setSelectedExamId}>
+                          <SelectTrigger id="examSelectHall">
+                            <SelectValue placeholder="Choose an exam" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {exams.length > 0 ? (
+                              exams.map(exam => (
+                                <SelectItem key={exam.id} value={exam.id}>
+                                  {exam.examCode} ({new Date(exam.examDate).toLocaleDateString()})
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="none" disabled>No exams available</SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="studentSelect">Select Student</Label>
+                        <Select 
+                          value={selectedStudentId} 
+                          onValueChange={setSelectedStudentId}
+                          disabled={!selectedExamId}
+                        >
+                          <SelectTrigger id="studentSelect">
+                            <SelectValue placeholder="Choose a student" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {selectedExamId && exams.find(e => e.id === selectedExamId)?.studentIds.length > 0 ? (
+                              students
+                                .filter(student => exams.find(e => e.id === selectedExamId)?.studentIds.includes(student.id))
+                                .map(student => (
+                                  <SelectItem key={student.id} value={student.id}>
+                                    {student.rollNumber} - {student.studentName}
+                                  </SelectItem>
+                                ))
+                            ) : (
+                              <SelectItem value="none" disabled>
+                                {!selectedExamId ? "Select an exam first" : "No students assigned to this exam"}
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      onClick={generateHallTicket} 
+                      className="w-full bg-usha-blue hover:bg-usha-lightblue"
+                      disabled={!selectedExamId || !selectedStudentId}
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      Generate Hall Ticket
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="student">
+            <div className="max-w-xl mx-auto">
+              <StudentSearchForm />
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
       
-      <HallTicketModal />
+      <HallTicketModal student={foundStudent} exam={foundExam} />
     </div>
   );
 };
