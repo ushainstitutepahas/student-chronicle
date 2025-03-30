@@ -1,19 +1,23 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { FileDown, FileJson } from "lucide-react";
+import { FileDown, FileJson, Download, FileText } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import { Exam, Student, ExamWithStudents } from "@/models/types";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useNavigate } from "react-router-dom";
 
 const Export = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [exams, setExams] = useState<Exam[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedExamId, setSelectedExamId] = useState<string>("");
+  const [selectedStudentId, setSelectedStudentId] = useState<string>("");
+  const [showHallTicket, setShowHallTicket] = useState(false);
   
   // Load exams and students from localStorage
   useEffect(() => {
@@ -41,15 +45,12 @@ const Export = () => {
     const selectedExam = exams.find(exam => exam.id === selectedExamId);
     if (!selectedExam) return;
     
-    // Get students for the selected exam
     const examStudents = students.filter(student => 
       selectedExam.studentIds.includes(student.id)
     );
     
-    // CSV Header
     const csvHeader = "Student Name,Roll Number,Class,Section,Phone Number,Address,Father's Name,Father's Phone,Login Email,Username,Password\n";
     
-    // CSV Rows
     const csvRows = examStudents.map(student => {
       return [
         student.studentName,
@@ -66,10 +67,8 @@ const Export = () => {
       ].join(",");
     }).join("\n");
     
-    // Complete CSV Content
     const csvContent = csvHeader + csvRows;
     
-    // Create and download the CSV file
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
@@ -86,31 +85,169 @@ const Export = () => {
     });
   };
   
-  const generateJSON = () => {
-    // Format students data for JSON
-    const jsonData = {
-      students: students.map(student => ({
-        "Roll Number": student.rollNumber.toString(),
-        "Student Name": student.studentName,
-        "Username": student.username
-      }))
-    };
-    
-    // Create and download the JSON file
-    const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: "application/json" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", "all_students.json");
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const viewJSONData = () => {
+    navigate("/json");
     
     toast({
-      title: "JSON Export Successful",
-      description: `JSON data for ${students.length} students has been exported.`
+      title: "JSON Data Viewer",
+      description: "Showing JSON data for all students."
     });
+  };
+  
+  const generateHallTicket = () => {
+    if (!selectedExamId || !selectedStudentId) {
+      toast({
+        title: "Error",
+        description: "Please select both an exam and a student.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setShowHallTicket(true);
+  };
+  
+  const HallTicketModal = () => {
+    const selectedExam = exams.find(exam => exam.id === selectedExamId);
+    const selectedStudent = students.find(student => student.id === selectedStudentId);
+    
+    if (!selectedExam || !selectedStudent) return null;
+    
+    return (
+      <Dialog open={showHallTicket} onOpenChange={setShowHallTicket}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Hall Ticket</DialogTitle>
+          </DialogHeader>
+          
+          <div id="hall-ticket" className="p-4 bg-white border rounded-lg">
+            <div className="flex justify-between items-center mb-6 border-b pb-4">
+              <div className="flex items-center gap-3">
+                <img 
+                  src="https://i.ibb.co/PskvV2/Untitled-design.png" 
+                  alt="Usha Institute Logo" 
+                  className="h-16 w-auto" 
+                />
+                <div>
+                  <h1 className="text-xl font-bold text-usha-blue">Usha Institute</h1>
+                  <p className="text-sm text-gray-600">Excellence in Education</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="font-bold">Exam Hall Ticket</p>
+                <p className="text-sm text-gray-600">Date: {new Date(selectedExam.examDate).toLocaleDateString()}</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-6 mb-6">
+              <div>
+                <p className="text-sm text-gray-600">Student Name</p>
+                <p className="font-semibold">{selectedStudent.studentName}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Roll Number</p>
+                <p className="font-semibold">{selectedStudent.rollNumber}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Course</p>
+                <p className="font-semibold">{selectedStudent.courseName}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Username</p>
+                <p className="font-semibold">{selectedStudent.username}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Father's Name</p>
+                <p className="font-semibold">{selectedStudent.fatherName}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Contact</p>
+                <p className="font-semibold">{selectedStudent.mobileNumber}</p>
+              </div>
+            </div>
+            
+            <div className="bg-gray-50 p-4 rounded mb-6">
+              <h3 className="font-bold mb-2">Exam Details</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">Exam Code</p>
+                  <p className="font-semibold">{selectedExam.examCode}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Exam Date</p>
+                  <p className="font-semibold">{new Date(selectedExam.examDate).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Exam Time</p>
+                  <p className="font-semibold">{selectedExam.examTime}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Exam Center</p>
+                  <p className="font-semibold">{selectedExam.examCenter}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="border-t pt-4 flex justify-between">
+              <div>
+                <p className="font-bold mb-1">Instructions:</p>
+                <ul className="text-sm text-gray-700 list-disc pl-5">
+                  <li>Please arrive 30 minutes before the exam time</li>
+                  <li>Bring your ID proof along with this hall ticket</li>
+                  <li>No electronic devices are allowed in the exam hall</li>
+                </ul>
+              </div>
+              <div className="text-center">
+                <div className="h-20 w-32 border-b border-black mx-auto mb-1"></div>
+                <p className="text-sm">Authorized Signature</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex justify-end mt-4">
+            <Button onClick={() => {
+              const content = document.getElementById('hall-ticket');
+              if (content) {
+                const printWindow = window.open('', '_blank');
+                if (printWindow) {
+                  printWindow.document.write(`
+                    <html>
+                      <head>
+                        <title>Hall Ticket - ${selectedStudent.studentName}</title>
+                        <style>
+                          body { font-family: Arial, sans-serif; }
+                          .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+                          .header { display: flex; justify-content: space-between; border-bottom: 1px solid #ccc; padding-bottom: 15px; margin-bottom: 20px; }
+                          .logo-section { display: flex; align-items: center; gap: 10px; }
+                          .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+                          .exam-details { background: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+                          .footer { border-top: 1px solid #ccc; padding-top: 15px; display: flex; justify-content: space-between; }
+                          .signature { text-align: center; }
+                          .signature-line { height: 20px; width: 120px; border-bottom: 1px solid black; margin: 0 auto 5px; }
+                          .instructions { margin-bottom: 0; }
+                          .instructions ul { padding-left: 20px; }
+                        </style>
+                      </head>
+                      <body>
+                        <div class="container">
+                          ${content.innerHTML}
+                        </div>
+                      </body>
+                    </html>
+                  `);
+                  printWindow.document.close();
+                  printWindow.focus();
+                  printWindow.print();
+                }
+              }
+            }}>
+              <Download className="mr-2 h-4 w-4" />
+              Print Hall Ticket
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
   };
   
   return (
@@ -172,23 +309,22 @@ const Export = () => {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <FileJson className="mr-2 h-5 w-5 text-usha-blue" />
-                Export All Students (JSON)
+                Student Data (JSON)
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <p className="text-sm text-gray-600">
-                  Generate a JSON file containing all registered students' information. 
-                  This file can be used for viewing student data via a dedicated URL.
+                  View JSON data containing all registered students' information in a dedicated viewer page.
                 </p>
                 
                 <Button 
-                  onClick={generateJSON} 
+                  onClick={viewJSONData} 
                   className="w-full bg-usha-blue hover:bg-usha-lightblue"
                   disabled={students.length === 0}
                 >
                   <FileJson className="mr-2 h-4 w-4" />
-                  Download JSON
+                  View JSON Data
                 </Button>
                 
                 {students.length === 0 && (
@@ -199,8 +335,81 @@ const Export = () => {
               </div>
             </CardContent>
           </Card>
+          
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <FileText className="mr-2 h-5 w-5 text-usha-blue" />
+                Generate Hall Ticket
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="examSelectHall">Select Exam</Label>
+                    <Select value={selectedExamId} onValueChange={setSelectedExamId}>
+                      <SelectTrigger id="examSelectHall">
+                        <SelectValue placeholder="Choose an exam" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {exams.length > 0 ? (
+                          exams.map(exam => (
+                            <SelectItem key={exam.id} value={exam.id}>
+                              {exam.examCode} ({new Date(exam.examDate).toLocaleDateString()})
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="none" disabled>No exams available</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="studentSelect">Select Student</Label>
+                    <Select 
+                      value={selectedStudentId} 
+                      onValueChange={setSelectedStudentId}
+                      disabled={!selectedExamId}
+                    >
+                      <SelectTrigger id="studentSelect">
+                        <SelectValue placeholder="Choose a student" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedExamId && exams.find(e => e.id === selectedExamId)?.studentIds.length > 0 ? (
+                          students
+                            .filter(student => exams.find(e => e.id === selectedExamId)?.studentIds.includes(student.id))
+                            .map(student => (
+                              <SelectItem key={student.id} value={student.id}>
+                                {student.rollNumber} - {student.studentName}
+                              </SelectItem>
+                            ))
+                        ) : (
+                          <SelectItem value="none" disabled>
+                            {!selectedExamId ? "Select an exam first" : "No students assigned to this exam"}
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <Button 
+                  onClick={generateHallTicket} 
+                  className="w-full bg-usha-blue hover:bg-usha-lightblue"
+                  disabled={!selectedExamId || !selectedStudentId}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  Generate Hall Ticket
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
+      
+      <HallTicketModal />
     </div>
   );
 };
