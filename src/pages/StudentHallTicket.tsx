@@ -284,7 +284,7 @@ const StudentHallTicket = () => {
           </Card>
           
           <div className="text-center mt-4">
-            <a href="/" className="text-usha-blue hover:underline">Back to Home</a>
+            <a href="http://ushainstitute.com/" className="text-usha-blue hover:underline">Back to Home at Usha Institute</a>
           </div>
         </div>
       </div>
