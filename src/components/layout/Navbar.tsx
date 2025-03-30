@@ -12,7 +12,15 @@ const Navbar = () => {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0 flex items-center">
-              <div className="h-10 w-auto mr-2 font-bold text-xl">
+              <img 
+                src="https://exam.ushainstitute.com/wp-content/uploads/2025/03/cropped-Usha-Institute-removebg-preview.png" 
+                alt="Usha Institute Logo" 
+                className="h-10 w-auto mr-2" 
+                onError={(e) => {
+                  e.currentTarget.src = "https://i.ibb.co/PskvV2V/Untitled-design.png";
+                }}
+              />
+              <div className="font-bold text-xl">
                 Usha Institute
               </div>
             </Link>
@@ -30,6 +38,9 @@ const Navbar = () => {
             </Link>
             <Link to="/export" className="px-3 py-2 rounded-md text-sm font-medium hover:bg-usha-lightblue">
               Export Data
+            </Link>
+            <Link to="/hall-ticket" className="px-3 py-2 rounded-md text-sm font-medium bg-usha-accent hover:bg-orange-600">
+              Find Hall Ticket
             </Link>
           </div>
           
@@ -74,6 +85,13 @@ const Navbar = () => {
               onClick={() => setMobileMenuOpen(false)}
             >
               Export Data
+            </Link>
+            <Link 
+              to="/hall-ticket"
+              className="block px-3 py-2 rounded-md text-base font-medium bg-usha-accent text-white hover:bg-orange-600"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Find Hall Ticket
             </Link>
           </div>
         </div>

@@ -9,6 +9,7 @@ import Exams from "./pages/Exams";
 import Export from "./pages/Export";
 import JsonViewer from "./pages/JsonViewer";
 import NotFound from "./pages/NotFound";
+import StudentHallTicket from "./pages/StudentHallTicket";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { StrictMode } from "react";
 
@@ -29,6 +30,7 @@ const App = () => {
               <Route path="/exams" element={<Exams />} />
               <Route path="/export" element={<Export />} />
               <Route path="/json" element={<JsonViewer />} />
+              <Route path="/hall-ticket" element={<StudentHallTicket />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

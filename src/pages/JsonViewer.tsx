@@ -23,9 +23,15 @@ const JsonViewer = () => {
   // Format JSON data for display
   const jsonData = {
     students: students.map(student => ({
-      "Roll Number": student.rollNumber.toString(),
-      "Student Name": student.studentName,
-      "Username": student.username
+      "id": student.id,
+      "rollNumber": student.rollNumber.toString(),
+      "studentName": student.studentName,
+      "fatherName": student.fatherName,
+      "mobileNumber": student.mobileNumber,
+      "email": student.email,
+      "dateOfBirth": student.dateOfBirth,
+      "courseName": student.courseName,
+      "username": student.username
     }))
   };
   
@@ -47,6 +53,12 @@ const JsonViewer = () => {
     });
   };
   
+  const openJsonInNewTab = () => {
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  };
+  
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -59,10 +71,16 @@ const JsonViewer = () => {
           </div>
           
           {students.length > 0 && (
-            <Button onClick={downloadJsonFile} className="bg-usha-blue hover:bg-usha-lightblue">
-              <Download className="mr-2 h-4 w-4" />
-              Download JSON
-            </Button>
+            <div className="flex space-x-2">
+              <Button onClick={openJsonInNewTab} className="bg-usha-blue hover:bg-usha-lightblue">
+                <FileJson className="mr-2 h-4 w-4" />
+                Open JSON in New Tab
+              </Button>
+              <Button onClick={downloadJsonFile} className="bg-usha-accent hover:bg-orange-600">
+                <Download className="mr-2 h-4 w-4" />
+                Download JSON
+              </Button>
+            </div>
           )}
         </div>
         
@@ -80,6 +98,8 @@ const JsonViewer = () => {
                         <TableHead>Roll Number</TableHead>
                         <TableHead>Student Name</TableHead>
                         <TableHead>Username</TableHead>
+                        <TableHead>Course</TableHead>
+                        <TableHead>Date of Birth</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -88,6 +108,8 @@ const JsonViewer = () => {
                           <TableCell>{student.rollNumber}</TableCell>
                           <TableCell>{student.studentName}</TableCell>
                           <TableCell>{student.username}</TableCell>
+                          <TableCell>{student.courseName}</TableCell>
+                          <TableCell>{student.dateOfBirth}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

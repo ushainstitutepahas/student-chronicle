@@ -1,7 +1,7 @@
 
 import { Link } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, CalendarCheck, Download, FileText } from "lucide-react";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Users, CalendarCheck, Download, FileText, Search } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 
 const Index = () => {
@@ -11,11 +11,19 @@ const Index = () => {
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center mb-8">
+          <img 
+            src="https://exam.ushainstitute.com/wp-content/uploads/2025/03/cropped-Usha-Institute-removebg-preview.png" 
+            alt="Usha Institute Logo" 
+            className="h-24 w-auto mx-auto mb-4" 
+            onError={(e) => {
+              e.currentTarget.src = "https://i.ibb.co/PskvV2V/Untitled-design.png";
+            }}
+          />
           <h1 className="text-3xl font-bold text-usha-blue">Exam Management – Usha Institute</h1>
           <p className="mt-2 text-usha-darkgray">Manage students, exams, and reporting in one platform</p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Link to="/students" className="transition-transform hover:scale-105">
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader className="bg-usha-blue text-white rounded-t-lg">
@@ -63,6 +71,23 @@ const Index = () => {
               </CardContent>
               <CardFooter className="text-usha-blue font-medium">
                 Export Data →
+              </CardFooter>
+            </Card>
+          </Link>
+          
+          <Link to="/hall-ticket" className="transition-transform hover:scale-105">
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader className="bg-usha-accent text-white rounded-t-lg">
+                <CardTitle className="flex items-center">
+                  <Search className="mr-2 h-6 w-6" />
+                  Find Hall Ticket
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <p>Students can find and print their hall tickets by entering their name and date of birth.</p>
+              </CardContent>
+              <CardFooter className="text-usha-blue font-medium">
+                Get Hall Ticket →
               </CardFooter>
             </Card>
           </Link>
